@@ -108,3 +108,16 @@ Next: T2.9 — API validation, duplicate handling, edge cases, and ownership iso
 - Full agent debug logs show process names without window titles.
 - Automated tests: 32 passed.
 - Next task: T3.3 — Idle Detection using GetLastInputInfo.
+
+## T3.3 — Windows Idle Detection
+
+- Implemented `desktop-agent/app/idle.py`.
+- Added Windows idle detection using GetLastInputInfo and GetTickCount64.
+- Added configurable idle threshold and status monitoring.
+- Added unit tests for idle calculation and threshold validation.
+- Idle detection tests: 17 passed.
+- Full desktop-agent test suite: 49 passed.
+- Windows API manual verification: Pending.
+
+### Next Task
+T3.4 — Session Builder.

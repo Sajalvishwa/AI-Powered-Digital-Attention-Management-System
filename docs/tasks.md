@@ -43,7 +43,7 @@
 
 - [x] **T3.1** `desktop-agent/app/...` skeleton and entry point verify/scaffold karo.
 - [x] **T3.2** `window_tracker.py` — foreground application name and title (`pywin32` + `psutil`).
-- [ ] **T3.3** `idle.py` — idle detection (`GetLastInputInfo` / `GetTickCount64`).
+- [x] **T3.3** `idle.py` — idle detection (`GetLastInputInfo` / `GetTickCount64`).
 - [ ] **T3.4** `session_builder.py` — pure logic: events → sessions; unit tests likho.
 - [ ] **T3.5** SQLite offline buffer (`pending_sessions`) — save, read and mark synced.
 - [ ] **T3.6** API client + secure token storage using `keyring`.
