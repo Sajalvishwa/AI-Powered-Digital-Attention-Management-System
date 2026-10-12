@@ -10,6 +10,7 @@ from app.agent import Agent
 from app.logging_setup import close_logging, setup_logging
 from app.settings import SettingsError, load_settings
 from app.tracker import Tracker, TrackerUnavailable, WindowTracker
+from app.idle import get_windows_idle_seconds
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,7 +57,7 @@ def main(argv: list[str] | None = None, tracker: Tracker | None = None) -> int:
                 log.error("%s", exc)
                 print(f"Error: {exc}", file=sys.stderr)
                 return 3
-        agent = Agent(settings, tracker)
+        agent = Agent(settings, tracker ,idle_provider=get_windows_idle_seconds)
         previous = _install_signal_handlers(agent)
         try:
             return agent.run(max_ticks=args.max_ticks)
