@@ -1,0 +1,21 @@
+# Week 1-2: only PostgreSQL in Docker. Run backend locally with uvicorn.
+# Redis/Celery, backend and frontend services will be added later.
+services:
+  db:
+    image: postgres:16
+    container_name: attention_db
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

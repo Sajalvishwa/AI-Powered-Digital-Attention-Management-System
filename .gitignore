@@ -1,0 +1,14 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.db
+dist/
+build/
+node_modules/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+backend/app/ml/saved_models/*
+!backend/app/ml/saved_models/.gitkeep
