@@ -7,7 +7,7 @@ An intelligent activity-monitoring and focus-management platform designed to hel
 The platform combines a Python-based desktop agent, a FastAPI backend, PostgreSQL storage, and a React dashboard to provide activity insights and personalized focus-management capabilities.
 
 > **Project Type:** Infosys Springboard Internship 7.0  
-> **Development Status:** In Progress  
+> **Development Status:** In Progress (backend and desktop agent complete; React dashboard next)  
 > **Primary Goal:** Understand digital activity patterns and support better focus management.
 
 ---
@@ -17,6 +17,7 @@ The platform combines a Python-based desktop agent, a FastAPI backend, PostgreSQ
 - [Overview](#-overview)
 - [Problem Statement](#-problem-statement)
 - [Project Objectives](#-project-objectives)
+- [Current Status](#-current-status)
 - [Key Features](#-key-features)
 - [System Architecture](#-system-architecture)
 - [Technology Stack](#-technology-stack)
@@ -42,7 +43,7 @@ Traditional screen-time tools primarily report how long applications are used. T
 
 The collected information can be used to generate meaningful activity summaries and, as the project develops, support personalized focus-improvement recommendations.
 
-The platform is being developed with a modular architecture so that activity collection, backend processing, database storage, and dashboard visualization can evolve independently.
+The platform is built with a modular architecture so that activity collection, backend processing, database storage, and dashboard visualization can evolve independently.
 
 ### 🎯 Target Users
 
@@ -60,7 +61,7 @@ Digital distractions, frequent application switching, and unstructured computer 
 
 Existing screen-time and application-blocking tools may show usage duration, but usage duration alone does not explain every interruption or indicate whether a person was genuinely distracted.
 
-This project aims to provide a more informative approach by collecting application activity, recording idle periods, tracking focus sessions, and presenting usage statistics in an accessible dashboard.
+This project provides a more informative approach by collecting application activity, recording idle periods, tracking focus sessions, and presenting usage statistics in an accessible dashboard.
 
 The objective is to help users recognize their digital habits and make informed decisions about managing their attention.
 
@@ -68,14 +69,12 @@ The objective is to help users recognize their digital habits and make informed 
 
 ## 🎯 Project Objectives
 
-The main objectives are:
-
 1. Monitor foreground application usage on Windows.
 2. Record application activity as time-based sessions.
 3. Detect idle periods using Windows input information.
 4. Measure application-switching activity.
 5. Store activity records securely in PostgreSQL.
-6. Support reliable activity synchronization between the desktop agent and backend.
+6. Synchronize activity reliably between the desktop agent and backend.
 7. Preserve pending activity locally when the backend is unavailable.
 8. Provide APIs for focus sessions, goals, and activity statistics.
 9. Visualize daily usage and focus metrics through a React dashboard.
@@ -83,99 +82,91 @@ The main objectives are:
 
 ---
 
+## ✅ Current Status
+
+| Component | Status |
+|---|---|
+| Backend API (auth, activity, focus, goals, stats) | Implemented and tested |
+| PostgreSQL schema and Alembic migrations | Implemented |
+| Desktop agent: window tracker, idle detection, session builder | Implemented |
+| Desktop agent: SQLite offline buffer, API client, token storage, sync worker | Implemented |
+| Desktop agent: login / logout / status commands | Implemented |
+| End-to-end verification (agent → backend → PostgreSQL) | Verified with a 64-minute headless run |
+| React dashboard | Not started (Phase 4) |
+| System-tray controls, packaging | Not started (Phase 4–5) |
+
+**Verification summary (14 Oct 2026):** the agent ran headless for about 64 minutes, uploaded sessions to the backend every 30 seconds, and the local pending queue returned to zero. Expired access tokens were refreshed automatically. Idle sessions were recorded after the configured threshold and ended when input resumed. Application switches produced separate session rows. The exact application-switch count was verified by behaviour, not matched manually against a hand count.
+
+---
+
 ## ✨ Key Features
 
 ### 🔐 1. User Authentication
 
-The backend provides authentication and user-management functionality.
-
 - User registration and login.
-- Password hashing.
-- JWT-based authentication.
-- Access-token refresh and logout endpoints.
-- Protected API endpoints.
+- Argon2 password hashing.
+- JWT access tokens with rotating refresh tokens and reuse detection.
+- Logout that revokes refresh tokens.
+- Protected API endpoints and per-user data isolation.
 - User profile and settings management.
+- Rate limiting on registration, login, refresh and activity upload.
 
 ### 🖥️ 2. Desktop Activity Tracking
 
-The Windows desktop agent is designed to collect application activity.
+The Windows desktop agent runs headless in the background.
 
-- Foreground application detection.
-- Application-name collection.
-- Optional window-title collection.
-- Activity-session construction.
-- Idle-time detection.
-- Application-switch monitoring.
+- Foreground application detection (`pywin32` + `psutil`).
+- Optional window-title collection (off by default).
+- Idle detection using `GetLastInputInfo` and `GetTickCount64`.
+- Session builder that converts observations into continuous sessions with unique `client_id` values.
+- Application-switch tracking through session boundaries.
+- Clean shutdown that saves the final session (`Ctrl+C`).
 
-**Implementation status:** Foreground application tracking has been implemented and manually tested. The remaining desktop-agent components are under development.
+### 💾 3. Reliable Offline-First Synchronization
 
-### 📊 3. Activity Analytics
+- Every finished session is written to a local SQLite buffer first.
+- A sync worker uploads pending sessions in batches (default every 30 seconds).
+- Retry handling when the backend is unreachable.
+- Idempotent uploads: the backend ignores duplicates using `(user_id, client_id)`.
+- Automatic token refresh when the access token expires.
+- Tokens are kept in the Windows Credential Manager via `keyring`, never in plain files.
 
-The backend includes endpoints for activity statistics.
+### 📊 4. Activity Analytics
 
-- Daily activity summaries.
+- Daily activity summaries and hourly timelines.
 - Application usage aggregation.
-- Hourly activity timelines.
-- Active and idle duration calculations.
-- Focus-time aggregation.
+- Active, idle and focus-time calculations.
 - Application-switch counts.
-- Date-range reports.
+- Date-range reports (up to 92 calendar days).
 
-The accuracy of these metrics depends on the quality and completeness of the recorded activity data.
+Metric accuracy depends on the quality and completeness of the recorded activity data.
 
-### ⏱️ 4. Focus Session Management
+### ⏱️ 5. Focus Session Management
 
-The backend supports focus-session operations.
+- Start, pause, resume and stop sessions.
+- Only one running or paused session per user.
+- Session history.
 
-- Start a session.
-- Pause a session.
-- Resume a session.
-- Stop a session.
-- Retrieve session history.
+### 🎯 6. Goal Management
 
-### 🎯 5. Goal Management
-
-The backend provides goal-management operations.
-
-- Create goals.
-- Retrieve goals.
-- Update goals.
-- Delete goals.
-
-These operations provide the foundation for future personalized focus-management features.
-
-### 💾 6. Reliable Activity Storage
-
-The planned desktop synchronization architecture includes:
-
-- Local SQLite storage for pending activity.
-- Batched API uploads.
-- Retry handling.
-- Synchronization status tracking.
-- Duplicate-resistant database insertion.
-
-The SQLite buffer and complete desktop synchronization workflow are still part of the development roadmap.
+- Create, read, update and delete goals.
+- Duplicate-goal and ownership rules enforced by the backend.
 
 ### 🔒 7. Privacy Controls
 
-Planned privacy capabilities include:
-
-- Configurable window-title storage.
+- Window-title storage is disabled by default and enforced on the server.
 - Application ignore-list.
-- Tracking preferences.
-- User data deletion.
-- Protection of authentication credentials and sensitive information.
+- Delete-my-data endpoint that removes collected data but keeps the account.
+- Logs never contain passwords, tokens or window titles.
 
 ---
 
 ## 🏗️ System Architecture
 
-The application is organized into three primary layers.
-
 ```text
 ┌──────────────────────────────────────────┐
 │              React Dashboard             │
-│                                          │
+│        (Phase 4 - not started yet)       │
 │  Dashboard | Focus | Apps | Goals        │
 │                 Settings                 │
 └─────────────────────┬────────────────────┘
@@ -188,7 +179,7 @@ The application is organized into three primary layers.
 │  Authentication and User Management      │
 │  Activity and Focus Session APIs         │
 │  Goals and Statistics APIs               │
-│  Validation and Business Logic           │
+│  Validation, Rate Limiting, Ownership    │
 └─────────────────────┬────────────────────┘
                       │
                       │ SQLAlchemy
@@ -197,26 +188,26 @@ The application is organized into three primary layers.
 │               PostgreSQL                 │
 │                                          │
 │  Users | Devices | Activity Sessions     │
-│  Focus Sessions | Goals | Settings        │
+│  Focus Sessions | Goals | Settings       │
 └──────────────────────────────────────────┘
 
 
 ┌──────────────────────────────────────────┐
 │          Windows Desktop Agent           │
 │                                          │
-│  Window Tracker                          │
-│  Idle Detection                          │
+│  Window Tracker  →  Idle Detection       │
+│        ↓                                 │
 │  Session Builder                         │
+│        ↓                                 │
 │  SQLite Offline Buffer                   │
-│  API Client and Sync Worker              │
+│        ↓                                 │
+│  Sync Worker + API Client (keyring)      │
 └─────────────────────┬────────────────────┘
                       │
-                      │ Authenticated Batch Uploads
+                      │ Authenticated Batch Uploads (every 30s)
                       ▼
                  FastAPI Backend
 ```
-
-**Note:** The diagram represents the intended architecture. The complete desktop-to-backend synchronization workflow and React dashboard integration are still under development.
 
 ---
 
@@ -226,70 +217,67 @@ The application is organized into three primary layers.
 |---|---|---|
 | Programming Language | Python | Backend and desktop agent |
 | Backend Framework | FastAPI | REST API development |
-| ORM | SQLAlchemy | Database operations |
+| ORM | SQLAlchemy 2.x | Database operations |
 | Database Migrations | Alembic | Schema versioning |
-| Database | PostgreSQL | Persistent application data |
-| Authentication | JWT | API authentication |
+| Database | PostgreSQL 16+ | Persistent application data |
+| Authentication | JWT (PyJWT) | API authentication |
 | Password Security | Argon2 | Password hashing |
-| Desktop Monitoring | pywin32 | Windows API integration |
+| Desktop Monitoring | pywin32, ctypes | Windows API integration |
 | Process Monitoring | psutil | Process information |
-| Local Storage | SQLite | Planned offline activity buffer |
-| Secure Credential Storage | keyring | Planned token storage |
-| Frontend | React | Dashboard interface |
-| Frontend Build Tool | Vite | Development and production builds |
-| HTTP Client | Axios | Frontend API communication |
-| Testing | pytest | Automated testing |
+| Local Storage | SQLite | Offline activity buffer |
+| Secure Credential Storage | keyring | Token storage in Windows Credential Manager |
+| HTTP Client (agent) | requests | Agent-to-backend communication |
+| Frontend | React | Dashboard interface (planned) |
+| Frontend Build Tool | Vite | Development and production builds (planned) |
+| Testing | pytest, httpx | Automated testing |
 | Version Control | Git and GitHub | Source control |
 
 ---
 
 ## 📁 Project Structure
 
-The project is organized into separate backend, desktop-agent, frontend, and documentation components.
-
 ```text
 attention-platform/
 │
 ├── backend/
 │   ├── app/
-│   │   ├── api/
-│   │   ├── core/
+│   │   ├── api/            # routers and dependencies
+│   │   ├── core/           # config, database, security, rate limiter
 │   │   ├── models/
 │   │   ├── schemas/
-│   │   ├── repositories/
-│   │   ├── services/
+│   │   ├── repositories/   # database queries only
+│   │   ├── services/       # business logic
 │   │   └── main.py
-│   │
-│   ├── tests/
 │   ├── alembic/
-│   ├── alembic.ini
-│   ├── requirements.txt
-│   └── .env
+│   ├── tests/              # unit tests + integration tests
+│   └── requirements.txt
 │
 ├── desktop-agent/
 │   ├── app/
-│   │   ├── main.py
-│   │   ├── tracker.py
-│   │   ├── activity_collector.py
-│   │   ├── api_client.py
-│   │   └── notifications.py
-│   │
+│   │   ├── main.py             # entry point: run / login / logout / status
+│   │   ├── agent.py            # main loop
+│   │   ├── tracker.py          # foreground window tracking
+│   │   ├── idle.py             # idle detection
+│   │   ├── session_builder.py  # observations → sessions
+│   │   ├── sync_worker.py      # batch upload with retry
+│   │   ├── api_client.py       # HTTP client + token refresh
+│   │   ├── token_store.py      # keyring token storage
+│   │   ├── account_cli.py      # login / logout / status commands
+│   │   ├── settings.py         # config.toml loader
+│   │   └── ...                 # SQLite offline buffer and helpers
 │   ├── tests/
 │   └── requirements.txt
 │
-├── frontend/
-│   └── src/
-│
-├── docs/
-│   ├── tasks.md
-│   └── ...
-│
-├── .gitignore
+├── frontend/               # React dashboard (Phase 4)
+├── extension/              # browser extension (placeholder)
+├── docs/                   # design, architecture, database, security, tasks
+├── docker/
+├── docker-compose.yml      # optional PostgreSQL container
 ├── .env.example
 └── README.md
 ```
 
-> **Note:** This is a representative structure. Some directories and modules may change as development progresses. Keep the README synchronized with the actual repository.
+> The structure is representative and may change as development progresses.
 
 ---
 
@@ -297,16 +285,12 @@ attention-platform/
 
 ### Prerequisites
 
-Install the following tools before starting development:
-
-- Python 3.11 or a compatible project-supported version.
+- Python 3.11 or newer.
 - PostgreSQL.
 - Git.
-- Visual Studio Code.
-- Node.js and npm for the React frontend.
-- Windows for the desktop tracking component.
-
-Verify the installations:
+- Visual Studio Code (recommended).
+- Node.js and npm (for the React frontend, once it is added).
+- Windows (required for the desktop agent).
 
 ```powershell
 python --version
@@ -315,123 +299,129 @@ node --version
 npm --version
 ```
 
-Verify PostgreSQL connectivity using your configured PostgreSQL client.
-
 ### 1. Clone the Repository
 
 ```powershell
 git clone https://github.com/Sajalvishwa/AI-Powered-Digital-Attention-Management-System.git
-```
-
-Navigate into the project:
-
-```powershell
 cd AI-Powered-Digital-Attention-Management-System
 ```
 
-**Important:** The commands below assume that the repository contains the `backend/` and `desktop-agent/` directories shown in the project structure.
-
 ### 2. Configure PostgreSQL
 
-Create the development and test databases:
+Create the development and test databases (names use underscores):
 
 ```sql
 CREATE DATABASE attention_dev;
 CREATE DATABASE attention_test;
 ```
 
-Use the development database for local development and the test database for automated integration tests.
+Alternatively, start PostgreSQL with Docker from the project root:
 
-Never run destructive test fixtures against the development database.
+```powershell
+copy .env.example .env
+docker compose up -d db
+```
+
+Use the development database for local work and the test database only for automated integration tests. Never run destructive test fixtures against the development database.
 
 ### 3. Set Up the Backend
 
-Open a PowerShell terminal in the backend directory:
-
 ```powershell
 cd backend
-```
-
-Create a virtual environment if one does not already exist:
-
-```powershell
 python -m venv venv
-```
-
-Activate it:
-
-```powershell
 .\venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```powershell
 python -m pip install -r requirements.txt
-```
-
-Configure the backend environment variables using the project's existing settings configuration and `.env.example`.
-
-After configuring the database, apply the existing migrations:
-
-```powershell
 alembic upgrade head
-```
-
-Start the development server:
-
-```powershell
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The backend should be available at:
+The backend is then available at:
 
 - API base URL: `http://127.0.0.1:8000`
 - Interactive API documentation: `http://127.0.0.1:8000/docs`
-- OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
+- Health check: `http://127.0.0.1:8000/health`
 
-Open the API documentation to inspect the endpoints currently registered by the application.
+Create a user through `POST /api/v1/auth/register` (for example from the `/docs` page) before logging in from the agent.
 
 ### 4. Set Up the Desktop Agent
 
-Open another PowerShell terminal:
+Open a second PowerShell terminal:
 
 ```powershell
 cd desktop-agent
-```
-
-Create and activate the virtual environment if necessary:
-
-```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
-```
-
-Install the project's desktop-agent dependencies:
-
-```powershell
 python -m pip install -r requirements.txt
 ```
 
-Run the existing tracker:
+**Log in once** (the backend must be running). Tokens are stored in the Windows Credential Manager:
+
+```powershell
+python -m app.main login
+```
+
+**Check the agent's state:**
+
+```powershell
+python -m app.main status
+```
+
+This shows the data folder, log file, server reachability, login state and how many sessions are waiting to upload.
+
+**Start tracking** (runs until you press `Ctrl+C`):
+
+```powershell
+python -m app.main run
+```
+
+Press `Ctrl+C` once to stop. The agent saves the final session and uploads it before exiting.
+
+**Other commands and options:**
+
+```powershell
+python -m app.main logout          # remove stored tokens
+python -m app.main run --debug     # verbose logging (large log files)
+python -m app.main --data-dir .\somefolder run   # keep config, log and buffer elsewhere
+```
+
+**Agent files:** on Windows the agent stores `config.toml`, `agent.log` and `buffer.db` in `%APPDATA%\AttentionAgent`. A default `config.toml` is created on the first run:
+
+```toml
+api_base_url = "http://127.0.0.1:8000/api/v1"
+poll_interval_sec = 1.0
+idle_threshold_sec = 120
+sync_interval_sec = 30
+log_level = "INFO"
+```
+
+`http://` is accepted only for localhost; any other server must use `https://`.
+
+**Manual tracker check (does not upload anything):**
 
 ```powershell
 python -m app.tracker --seconds 20
 ```
 
-To inspect window titles during local development:
+Add `--titles` to also print window titles in the console. Window titles can contain personal information, so do not publish them in logs or screenshots.
 
-```powershell
-python -m app.tracker --seconds 20 --titles
+### 5. Verify the Pipeline
+
+1. Start the backend and run `python -m app.main status` (it should say the server is reachable and you are logged in).
+2. Run `python -m app.main run` and work normally for a few minutes. Look for `Sync successful` lines in the console.
+3. Stop with `Ctrl+C` and run `status` again. `Waiting to upload` should be `0`.
+4. In PostgreSQL, confirm the rows arrived:
+
+```sql
+SELECT COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE is_idle) AS idle_rows,
+       MIN(started_at) AS first_start,
+       MAX(ended_at) AS last_end
+FROM activity_sessions;
 ```
 
-**Privacy warning:** Window titles can contain personal information, document names, or other sensitive details. Use title inspection only when appropriate, and do not publish captured titles in logs or screenshots.
+### 6. Set Up the Frontend
 
-The command above tests the tracker. It does not, by itself, prove that activity has been uploaded to the backend or saved in PostgreSQL.
-
-### 5. Set Up the Frontend
-
-Once the React application and its `package.json` are present, open a terminal in the frontend directory:
+The React dashboard has not been created yet. Once `frontend/package.json` exists:
 
 ```powershell
 cd frontend
@@ -439,17 +429,11 @@ npm install
 npm run dev
 ```
 
-Use the local development URL printed by Vite.
-
-The exact frontend scripts and configuration depend on the current implementation of `frontend/package.json`.
-
 ---
 
 ## 🔑 Environment Configuration
 
-Create a local `.env` file using the structure supported by the backend configuration.
-
-Example:
+Create a local `.env` file in the project root (see `.env.example`):
 
 ```env
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/attention_dev
@@ -458,7 +442,9 @@ ACCESS_EXPIRE_MIN=15
 REFRESH_EXPIRE_DAYS=7
 ```
 
-These values illustrate the configuration format. Use the exact variable names and types required by the current backend settings.
+Use the exact variable names required by the backend settings. When using Docker, `.env` also provides the PostgreSQL container's credentials.
+
+The integration tests derive the test database by replacing a trailing `_dev` in `DATABASE_URL` with `_test`, or use `TEST_DATABASE_URL` when it is set. They refuse to run against any database whose name does not end in `_test`.
 
 ### Security Guidelines
 
@@ -466,41 +452,39 @@ These values illustrate the configuration format. Use the exact variable names a
 - Never expose JWT secrets in screenshots, logs, or public repositories.
 - Use a strong, randomly generated JWT secret.
 - Keep the development and test databases separate.
-- Use an appropriately secured database account.
-- Rotate any secret that has accidentally been exposed.
+- Do not commit large generated files (project dumps, `.db` files, virtual environments). GitHub rejects files over 100 MB.
+- Rotate any secret that has been exposed.
 
 ---
 
 ## 🔌 Backend API
 
-The backend provides REST endpoints for authentication, user management, activity ingestion, focus sessions, goals, and statistics.
-
-The following table summarizes the main endpoints documented by the project.
+All paths below are under `/api/v1` unless noted.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/health` | Check backend health |
-| POST | `/api/v1/auth/register` | Register a user |
-| POST | `/api/v1/auth/login` | Authenticate a user |
-| POST | `/api/v1/auth/refresh` | Refresh an access token |
-| POST | `/api/v1/auth/logout` | Handle logout |
-| GET | `/api/v1/users/me` | Retrieve the current user's profile |
-| PUT | `/api/v1/users/me` | Update the current user's profile |
-| GET | `/api/v1/users/me/settings` | Retrieve user settings |
-| PUT | `/api/v1/users/me/settings` | Update user settings |
-| POST | `/api/v1/activity/batch` | Submit a batch of activity sessions |
-| GET | `/api/v1/activity/recent` | Retrieve recent activity |
-| GET | `/api/v1/stats/today` | Retrieve today's activity statistics |
-| GET | `/api/v1/stats/range` | Retrieve statistics for a date range |
-| DELETE | `/api/v1/users/me/data` | Delete the current user's data |
+| GET | `/health` (no prefix) | Check backend health |
+| POST | `/auth/register` | Register a user |
+| POST | `/auth/login` | Authenticate and receive tokens |
+| POST | `/auth/refresh` | Rotate tokens |
+| POST | `/auth/logout` | Revoke a refresh token |
+| GET / PUT | `/users/me` | Read or update profile |
+| GET / PUT | `/users/me/settings` | Read or update settings |
+| POST | `/activity/batch` | Upload up to 500 sessions (idempotent) |
+| GET | `/activity/recent` | Recent activity |
+| POST | `/focus-sessions` | Start a focus session |
+| GET | `/focus-sessions/active` | Current active session |
+| PATCH | `/focus-sessions/{id}` | Pause, resume, stop or cancel |
+| GET | `/focus-sessions` | Session history |
+| GET | `/stats/today` | Today's statistics |
+| GET | `/stats/range` | Statistics for a date range |
+| POST / GET | `/goals` | Create or list goals |
+| PATCH / DELETE | `/goals/{id}` | Update or delete a goal |
+| DELETE | `/users/me/data?confirm=true` | Delete the current user's collected data |
 
-Focus-session and goal endpoints are also part of the backend.
-
-Consult the live OpenAPI documentation at `/docs` for their exact paths, request schemas, authentication requirements, and response formats.
+See the live OpenAPI documentation at `/docs` for request and response schemas.
 
 ### Authentication
-
-Protected endpoints require a valid access token in the authorization header:
 
 ```http
 Authorization: Bearer YOUR_ACCESS_TOKEN
@@ -508,69 +492,46 @@ Authorization: Bearer YOUR_ACCESS_TOKEN
 
 Do not place real tokens in source code, public examples, or Git commits.
 
+### Rate Limits
+
+| Endpoint | Limit |
+|---|---|
+| Register | 3 per minute per IP |
+| Login | 20 per minute per IP and 5 per minute per email |
+| Refresh | 30 per minute per IP |
+| Activity batch | 30 per minute per user |
+
 ---
 
 ## 🧪 Testing
 
-Automated testing is performed using `pytest`.
-
-### Backend Tests
-
-Open a terminal in the backend directory and activate the backend virtual environment.
-
-Run:
+### Backend
 
 ```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
+python -m pytest tests -q
+```
+
+Last recorded run: `61 passed, 1 warning`. The warning is a Starlette/AnyIO deprecation notice and does not affect results. Integration tests need the `attention_test` database.
+
+### Desktop Agent
+
+```powershell
+cd desktop-agent
+.\venv\Scripts\Activate.ps1
 python -m pytest -q
 ```
 
-The project's progress notes record a backend test run with:
+Run the full suite after any change. Make sure the correct virtual environment is active; running tests with a different Python installation fails with missing-module errors.
 
-```text
-61 passed, 1 warning in 6.13s
-```
+### End-to-End Check
 
-This result describes a recorded test run, not a guarantee that every future version will produce the same result.
-
-### Desktop Agent Tests
-
-Open a terminal in the desktop-agent directory and activate its virtual environment.
-
-Run:
-
-```powershell
-python -m pytest -q
-```
-
-A previously recorded desktop-agent test run reported:
-
-```text
-32 passed in 0.93s
-```
-
-Rerun the tests after making changes.
-
-### Manual Tracker Verification
-
-The existing tracker can be tested using:
-
-```powershell
-python -m app.tracker --seconds 20
-```
-
-For an additional local inspection:
-
-```powershell
-python -m app.tracker --seconds 20 --titles
-```
-
-Manual tracker verification and automated unit tests do not replace a full end-to-end test.
+Automated tests do not replace a real run. Follow [Verify the Pipeline](#5-verify-the-pipeline) after changes to the agent or the sync flow.
 
 ---
 
 ## 🗺️ Development Roadmap
-
-Development is organized into six phases.
 
 ### Phase 0 — Project Setup
 
@@ -602,21 +563,20 @@ Development is organized into six phases.
 - [x] Goal CRUD operations.
 - [x] User data deletion endpoint.
 - [x] Rate limiting.
-- [x] Backend test suite.
-- [ ] Additional focus-session ownership and concurrency verification.
-- [ ] Optional Docker setup.
+- [x] Backend test suite (61 passing).
+- [ ] Optional Docker setup for the API.
 
-### Phase 3 — Desktop Tracker Core
+### Phase 3 — Desktop Tracker Core ✅
 
 - [x] Desktop-agent skeleton.
 - [x] Foreground window tracker.
-- [ ] Idle detection.
-- [ ] Session builder.
-- [ ] SQLite offline buffer.
-- [ ] API client and secure token storage.
-- [ ] Background synchronization and retry handling.
-- [ ] Ignore-list and privacy enforcement.
-- [ ] One-hour end-to-end tracking verification.
+- [x] Idle detection.
+- [x] Session builder.
+- [x] SQLite offline buffer.
+- [x] API client and secure token storage.
+- [x] Background synchronization and retry handling.
+- [x] Ignore-list and privacy enforcement.
+- [x] One-hour headless run verified against PostgreSQL.
 
 ### Phase 4 — React Dashboard
 
@@ -634,62 +594,53 @@ Development is organized into six phases.
 ### Phase 5 — Polish and Release
 
 - [ ] Windows startup and single-instance support.
-- [ ] Secure file logging.
+- [ ] Secure file logging review.
 - [ ] Windows executable packaging.
 - [ ] Setup and usage documentation.
 - [ ] End-to-end integration tests.
 - [ ] Final project documentation and `v0.1.0` release tag.
 
-> Roadmap checkboxes should be updated only after implementation and meaningful verification are complete.
+> Update checkboxes only after implementation and meaningful verification are complete.
 
 ---
 
 ## 🔒 Privacy and Security
 
-This project deals with information about how a person uses their computer. Privacy must therefore be considered throughout development.
+This project deals with information about how a person uses their computer, so privacy is considered throughout development.
 
-The following principles guide the implementation:
+- Collect only the activity information the application needs.
+- Never record keystroke contents, mouse-click contents, clipboard data or screenshots.
+- Treat window titles as sensitive: they are off by default, not read unless enabled, and dropped by the server unless the user opts in.
+- Respect application ignore-lists.
+- Require authentication on all private endpoints and enforce ownership checks (another user's resource returns 404).
+- Store refresh tokens only as hashes on the server and in the OS credential store on the client.
+- Detect refresh-token reuse and revoke all of that user's tokens.
+- Mask secrets in logs and never log window titles.
+- Provide a way to delete collected data.
+- Keep pending activity safe in the local buffer during connectivity failures.
 
-- Collect only the activity information required by the application.
-- Make tracking behavior understandable to the user.
-- Avoid collecting actual keyboard keystrokes or mouse-click contents.
-- Treat window titles as potentially sensitive information.
-- Respect application ignore-lists and title-storage preferences.
-- Require authentication for protected API endpoints.
-- Validate incoming API requests.
-- Avoid exposing credentials and tokens in logs.
-- Protect user data through ownership checks.
-- Provide a way to delete user data.
-- Preserve pending activity safely during temporary connectivity failures.
-
-Activity metrics are indicators of digital behavior, not definitive measurements of attention or mental state.
+Activity metrics are indicators of digital behaviour, not definitive measurements of attention or mental state.
 
 ---
 
 ## 🔮 Future Enhancements
 
-Potential improvements include:
-
 - Personalized focus recommendations.
-- Intelligent analysis of application-switching patterns.
+- Analysis of application-switching patterns.
 - Focus-session trend analysis.
 - Historical productivity reports.
 - Configurable daily focus goals.
 - Improved visualization of active and idle periods.
-- Secure offline-to-online synchronization.
 - Desktop system-tray controls.
 - Exportable activity reports.
 - Optional machine-learning models for pattern analysis.
-
-These enhancements will be introduced as the underlying tracking, synchronization, and dashboard components become available.
+- Notification tracking.
 
 ---
 
 ## 🤝 Contributing
 
-This project is being developed incrementally, with a focus on modular architecture, testing, privacy, and maintainability.
-
-To contribute:
+This project is developed incrementally, with a focus on modular architecture, testing, privacy, and maintainability.
 
 1. Fork the repository.
 2. Create a feature branch.
@@ -701,10 +652,9 @@ To contribute:
 Suggested branch naming:
 
 ```text
-feature/idle-detection
-feature/session-builder
-feature/offline-buffer
-feature/activity-dashboard
+feature/react-dashboard
+feature/tray-controls
+feature/startup-and-single-instance
 ```
 
 ---
