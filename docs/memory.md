@@ -134,3 +134,10 @@ T3.4 — Session Builder.
 - Full desktop-agent test suite: 126 passed in 19.52 seconds.
 - `git diff --check` also identified trailing whitespace in `backend/app/main.py`; cleanup applied separately.
 - T3.8 verification recorded. T3.9 headless-hour verification remains pending.
+
+## T3.9 — Headless run verified (14 Oct 2026)
+- ApiClient wired into Agent in desktop-agent/app/main.py; SyncWorker now starts.
+- 64-minute run: sessions synced to PostgreSQL, pending queue 0, no errors.
+- Idle detection verified (threshold 120s, IDLE row after threshold).
+- App-switch count verified by behaviour, exact count not manually matched.
+- Next: T3.8 re-check (ignore-list / store_window_titles), then Phase 4 (React dashboard).
