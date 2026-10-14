@@ -48,7 +48,7 @@
 - [x] **T3.6** API client + secure token storage using `keyring`.
 - [x] **T3.7** Sync worker — batch upload every 30 seconds with retry and backoff.
 - [x] **T3.8** Ignore-list + `store_window_titles` privacy setting enforce karo.
-- [ ] **T3.9** Tracker ko headless mode mein 1 hour chalao; PostgreSQL data, idle time aur app-switch counts verify karo.
+- [x] **T3.9** Tracker ko headless mode mein 1 hour chalao; PostgreSQL data, idle time aur app-switch counts verify karo.
 
 ## PHASE 4 — Frontend: React Dashboard (Days 11–13)
 
