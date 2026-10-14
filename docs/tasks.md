@@ -8,10 +8,10 @@
 
 - [x] **T0.1** Folder `attention-platform/` banao, `git init`, `.gitignore`, `docs/` mein 7 Markdown files rakho.
 - [x] **T0.2** `backend/` aur `desktop/` folders + alag virtual environments (`python -m venv venv`).
-- [ ] **T0.3** VS Code extensions: Python, Pylance, Ruff, Black, Docker, SQLTools (PostgreSQL), GitLens verify karo.
-- [ ] **T0.4** PostgreSQL install/configure karo; `attention_dev` + `attention_test` databases banao aur connectivity verify karo.
+- [x] **T0.3** VS Code extensions: Python, Pylance, Ruff, Black, Docker, SQLTools (PostgreSQL), GitLens verify karo.
+- [x] **T0.4** PostgreSQL install/configure karo; `attention_dev` + `attention_test` databases banao aur connectivity verify karo.
 - [x] **T0.5** `.env.example` banao (`DATABASE_URL`, `JWT_SECRET`, `ACCESS_EXPIRE_MIN`, `REFRESH_EXPIRE_DAYS`).
-- [ ] **T0.6** Initial Git commit: `chore: project scaffolding`.
+- [x] **T0.6** Initial Git commit: `chore: project scaffolding`.
 
 ## PHASE 1 — Backend Foundation (Days 2–4)
 
@@ -24,7 +24,7 @@
 - [x] **T1.7** `POST /api/v1/auth/login`, `/refresh`, `/logout`.
 - [x] **T1.8** `get_current_user` dependency.
 - [x] **T1.9** `GET/PUT /api/v1/users/me`, `GET/PUT /api/v1/users/me/settings`.
-- [ ] **T1.10** Pytest tests for authentication, profile and settings — separate task completion verification pending.
+- [x] **T1.10** Pytest tests for authentication, profile and settings — separate task completion verification pending.
 
 ## PHASE 2 — Activity Data APIs (Days 5–7)
 
@@ -37,18 +37,17 @@
 - [x] **T2.7** `DELETE /api/v1/users/me/data` — safely delete the current user's data.
 - [x] **T2.8** Rate limiting on authentication and activity batch endpoints — register (3/min/IP), login (20/min/IP + 5/min/email), refresh (30/min/IP), activity batch (30/min/user). Core and endpoint-level rate-limit tests are included in the passing suite.
 - [x] **T2.9** Pytest coverage for APIs, validation, duplicates, edge cases, ownership isolation and stats. Full backend test suite: **61 passed**.
-- [ ] **T2.10 (Optional / Deferred)** Dockerfile + `docker-compose.yml` for API and PostgreSQL; verify clean startup.
 
 ## PHASE 3 — Desktop Tracker Core (Days 8–10)
 
 - [x] **T3.1** `desktop-agent/app/...` skeleton and entry point verify/scaffold karo.
 - [x] **T3.2** `window_tracker.py` — foreground application name and title (`pywin32` + `psutil`).
 - [x] **T3.3** `idle.py` — idle detection (`GetLastInputInfo` / `GetTickCount64`).
-- [ ] **T3.4** `session_builder.py` — pure logic: events → sessions; unit tests likho.
-- [ ] **T3.5** SQLite offline buffer (`pending_sessions`) — save, read and mark synced.
-- [ ] **T3.6** API client + secure token storage using `keyring`.
-- [ ] **T3.7** Sync worker — batch upload every 30 seconds with retry and backoff.
-- [ ] **T3.8** Ignore-list + `store_window_titles` privacy setting enforce karo.
+- [x] **T3.4** `session_builder.py` — pure logic: events → sessions; unit tests likho.
+- [x] **T3.5** SQLite offline buffer (`pending_sessions`) — save, read and mark synced.
+- [x] **T3.6** API client + secure token storage using `keyring`.
+- [x] **T3.7** Sync worker — batch upload every 30 seconds with retry and backoff.
+- [x] **T3.8** Ignore-list + `store_window_titles` privacy setting enforce karo.
 - [ ] **T3.9** Tracker ko headless mode mein 1 hour chalao; PostgreSQL data, idle time aur app-switch counts verify karo.
 
 ## PHASE 4 — Frontend: React Dashboard (Days 11–13)

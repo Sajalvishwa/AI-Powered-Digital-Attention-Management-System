@@ -121,3 +121,16 @@ Next: T2.9 — API validation, duplicate handling, edge cases, and ownership iso
 
 ### Next Task
 T3.4 — Session Builder.
+
+### T3.8 ? Ignore-list and Window-Title Privacy
+
+- Added validated `store_window_titles` and `ignored_apps` settings.
+- Window titles remain disabled by default and are passed to observations only when enabled.
+- The tracker reads window titles only when the privacy setting is enabled.
+- Ignored application names are matched case-insensitively.
+- Entering an ignored application flushes the previous allowed session; ignored-app activity is not recorded by the agent.
+- Added settings validation and agent privacy/ignore-list regression tests.
+- Targeted desktop-agent tests: 57 passed.
+- Full desktop-agent test suite: 126 passed in 19.52 seconds.
+- `git diff --check` also identified trailing whitespace in `backend/app/main.py`; cleanup applied separately.
+- T3.8 verification recorded. T3.9 headless-hour verification remains pending.

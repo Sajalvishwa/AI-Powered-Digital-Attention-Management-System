@@ -12,3 +12,5 @@ node_modules/
 .mypy_cache/
 backend/app/ml/saved_models/*
 !backend/app/ml/saved_models/.gitkeep
+project_dump.txt
+project-audit.txt
