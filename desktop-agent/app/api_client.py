@@ -113,6 +113,10 @@ class ApiClient:
     def get_settings(self) -> dict:
         return self._call("GET", "/users/me/settings")
 
+    def get_active_focus(self) -> dict:
+        """The running/paused focus session, or {} when there is none."""
+        return self._call("GET", "/focus-sessions/active")
+
     def health(self) -> bool:
         parsed = urlparse(self.base_url)
         try:

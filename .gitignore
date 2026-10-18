@@ -14,3 +14,29 @@ backend/app/ml/saved_models/*
 !backend/app/ml/saved_models/.gitkeep
 project_dump.txt
 project-audit.txt
+# Frontend environment secrets
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+!frontend/.env.*.example
+
+# Electron release artifacts
+frontend/release/
+frontend/dist/
+
+# Local backup files
+*.backup
+*.bak
+*.before-*
+
+# Local scratch and audit files
+/frontend-code.txt
+/frontend-info.txt
+/integration-audit.txt
+/integration-contract-report.txt
+/integration-details.txt
+/integration-info.txt
+/integration-next.txt
+
+# Additional backup variants
+*.backup-*
