@@ -278,3 +278,10 @@ export const deleteGoal = (id) =>
   apiRequest(`/goals/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
+
+export const getAnalyticsSummary = () => apiRequest("/analytics/summary");
+export const getAnalyticsInsights = () => apiRequest("/analytics/insights");
+export const getAnalyticsPredictions = () =>
+  apiRequest("/analytics/predictions");
+export const getAnalyticsTrend = (days = 7) =>
+  apiRequest(`/analytics/trend?days=${days}`);

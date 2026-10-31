@@ -23,6 +23,10 @@ import {
   updateProfile,
   deleteMyData,
   deleteGoal,
+  getAnalyticsSummary,
+  getAnalyticsInsights,
+  getAnalyticsPredictions,
+  getAnalyticsTrend,
 } from './lib/api'
 
 const navItems = [
@@ -30,6 +34,7 @@ const navItems = [
   { label: 'Focus', icon: '◷' },
   { label: 'Apps', icon: '▤' },
   { label: 'Stats', icon: '▥' },
+  { label: 'Insights', icon: '✦' },
   { label: 'Goals', icon: '⚑' },
   { label: 'Settings', icon: '⚙' },
 ]
@@ -50,6 +55,21 @@ function formatTime(seconds) {
   return `${String(minutes).padStart(2, '0')}:${String(
     remainingSeconds,
   ).padStart(2, '0')}`
+}
+
+function formatScore(value) {
+  return value === null || value === undefined ? '—' : String(Math.round(value))
+}
+
+const INSIGHT_ICONS = {
+  pattern: '◷',
+  leak: '⚠',
+  interruptions: '⇄',
+  switching: '⇄',
+  notification: '✉',
+  warning: '⚠',
+  fatigue: '☾',
+  positive: '★',
 }
 
 function formatMinutes(seconds) {
@@ -156,6 +176,10 @@ function App() {
   const [profileMessage, setProfileMessage] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleteMessage, setDeleteMessage] = useState('')
+
+  const [analytics, setAnalytics] = useState(null)
+  const [analyticsError, setAnalyticsError] = useState('')
+  const [analyticsLoading, setAnalyticsLoading] = useState(false)
 
   // Electron desktop-agent integration.
   const [agentStatus, setAgentStatus] = useState({
@@ -535,6 +559,40 @@ function App() {
     }
   }, [user, activePage, sessionActive])
 
+  // AI analytics for the Insights page.
+  useEffect(() => {
+    if (!user || activePage !== 'Insights') return undefined
+
+    let cancelled = false
+    setAnalyticsLoading(true)
+    setAnalyticsError('')
+
+    Promise.allSettled([
+      getAnalyticsSummary(),
+      getAnalyticsInsights(),
+      getAnalyticsPredictions(),
+      getAnalyticsTrend(7),
+    ]).then(([summary, insights, predictions, trend]) => {
+      if (cancelled) return
+
+      if (summary.status === 'rejected') {
+        setAnalyticsError(summary.reason?.message || 'Could not load insights.')
+      }
+
+      setAnalytics({
+        summary: summary.status === 'fulfilled' ? summary.value : null,
+        insights: insights.status === 'fulfilled' ? insights.value?.insights || [] : [],
+        predictions: predictions.status === 'fulfilled' ? predictions.value : null,
+        trend: trend.status === 'fulfilled' ? trend.value : null,
+      })
+      setAnalyticsLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user, activePage])
+
   async function handleAuthSubmit(event) {
     event.preventDefault()
     setAuthError('')
@@ -611,6 +669,7 @@ function App() {
       setRecentActivity([])
       setGoals([])
       setSettings(null)
+      setAnalytics(null)
       setAuthBusy(false)
     }
   }
@@ -952,6 +1011,10 @@ function App() {
   )
   const topApps = todayStats?.top_apps || []
   const timeline = todayStats?.timeline || []
+  const insightSummary = analytics?.summary
+  const forecast = analytics?.predictions?.ml_forecast
+  const trendDays = analytics?.trend?.days || []
+  const predictions = analytics?.predictions
 
   return (
     <main className={`app-shell theme-${theme} ${focusMode ? 'focus-mode' : ''}`}>
@@ -1566,6 +1629,154 @@ function App() {
                       !rangeError && <p className="demo-note">Loading history...</p>
                     )}
                   </article>
+                </>
+              )}
+
+              {activePage === 'Insights' && (
+                <>
+                  {analyticsError && <p role="alert" className="session-error">{analyticsError}</p>}
+                  {analyticsLoading && <p className="demo-note">Analysing your attention data...</p>}
+
+                  <div className="stats-grid">
+                    <article className="stat-card">
+                      <div className="stat-top"><span>Focus score</span><span className="stat-icon green">◉</span></div>
+                      <div className="stat-value">{formatScore(insightSummary?.focus_score)}</div>
+                      <div className="stat-foot">Out of 100 · today</div>
+                    </article>
+
+                    <article className="stat-card">
+                      <div className="stat-top"><span>Productivity</span><span className="stat-icon blue">◷</span></div>
+                      <div className="stat-value">{formatScore(insightSummary?.productivity_score)}</div>
+                      <div className="stat-foot">Productive vs. distracting apps</div>
+                    </article>
+
+                    <article className="stat-card">
+                      <div className="stat-top"><span>Attention stability</span><span className="stat-icon amber">⇄</span></div>
+                      <div className="stat-value">{formatScore(insightSummary?.stability_score)}</div>
+                      <div className="stat-foot">Consistency of focus sessions</div>
+                    </article>
+
+                    <article className="stat-card">
+                      <div className="stat-top"><span>Tomorrow (forecast)</span><span className="stat-icon green">✦</span></div>
+                      <div className="stat-value">
+                        {forecast?.available ? formatScore(forecast.predicted_focus_score) : '—'}
+                      </div>
+                      <div className="stat-foot">
+                        {forecast?.available
+                          ? `ML forecast for ${forecast.for_day} · ±${forecast.model_mae}`
+                          : forecast?.reason || 'Not available yet'}
+                      </div>
+                    </article>
+                  </div>
+
+                  {insightSummary && (
+                    <article className="panel">
+                      <div className="panel-heading">
+                        <div>
+                          <h2>Today's summary</h2>
+                          <p>
+                            Best focus hour: {insightSummary.best_hour || '—'} ·
+                            Top distraction: {insightSummary.top_distraction || '—'}
+                          </p>
+                        </div>
+                      </div>
+                      <p>{insightSummary.suggestion}</p>
+                    </article>
+                  )}
+
+                  <div className="dashboard-grid">
+                    <article className="panel">
+                      <div className="panel-heading">
+                        <div><h2>Personalised insights</h2><p>Generated from your activity</p></div>
+                      </div>
+                      <div className="app-list">
+                        {(analytics?.insights || []).map((item, index) => (
+                          <div className="app-row" key={`${item.type}-${index}`}>
+                            <div className="app-icon">{INSIGHT_ICONS[item.type] || '•'}</div>
+                            <div className="app-details">
+                              <div className="app-name-row"><strong>{item.type}</strong></div>
+                              <p>{item.text}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {analytics && !analytics.insights.length && (
+                          <p className="demo-note">No insights yet. Start a focus session and keep the desktop agent running.</p>
+                        )}
+                      </div>
+                    </article>
+
+                    <article className="panel timeline-panel">
+                      <div className="panel-heading">
+                        <div><h2>7-day focus trend</h2><p>Stored daily focus scores</p></div>
+                      </div>
+
+                      <div className="timeline-chart" aria-label="Seven day focus score trend">
+                        {trendDays.map((entry) => (
+                          <div className="timeline-column" key={entry.day}>
+                            <span
+                              className={`timeline-bar ${entry.focus_score ? 'focused' : 'idle'}`}
+                              style={{ height: `${entry.focus_score ? Math.max(5, Math.min(100, entry.focus_score)) : 3}%` }}
+                              title={`${entry.day} · ${formatScore(entry.focus_score)}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {trendDays.length > 0 && (
+                        <div className="timeline-labels">
+                          <span>{trendDays[0].day}</span>
+                          <span>{trendDays[trendDays.length - 1].day}</span>
+                        </div>
+                      )}
+                    </article>
+                  </div>
+
+                  {predictions && (
+                    <article className="panel">
+                      <div className="panel-heading">
+                        <div><h2>Predictions &amp; risks</h2><p>Rule-based checks on your recent days</p></div>
+                      </div>
+                      <div className="app-list">
+                        <div className="app-row">
+                          <div className="app-icon">↘</div>
+                          <div className="app-details">
+                            <div className="app-name-row">
+                              <strong>Focus trend</strong>
+                              <span>{predictions.focus_degradation?.status}</span>
+                            </div>
+                            <p>Slope: {predictions.focus_degradation?.slope ?? '—'} points/day</p>
+                          </div>
+                        </div>
+                        <div className="app-row">
+                          <div className="app-icon">⚠</div>
+                          <div className="app-details">
+                            <div className="app-name-row">
+                              <strong>Productivity risk</strong>
+                              <span>{predictions.productivity_risk?.at_risk ? 'At risk' : 'OK'}</span>
+                            </div>
+                            <p>{(predictions.productivity_risk?.reasons || []).join('; ') || 'No risk detected.'}</p>
+                          </div>
+                        </div>
+                        <div className="app-row">
+                          <div className="app-icon">☾</div>
+                          <div className="app-details">
+                            <div className="app-name-row">
+                              <strong>Attention fatigue</strong>
+                              <span>
+                                {predictions.attention_fatigue?.fatigued_sessions ?? 0} /
+                                {' '}{predictions.attention_fatigue?.sessions_checked ?? 0} sessions
+                              </span>
+                            </div>
+                            <p>Sessions where distractions rose after 90 minutes.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  )}
+
+                  <p className="demo-note">
+                    The forecast is a machine-learning estimate, so treat it as a guide, not a guarantee.
+                  </p>
                 </>
               )}
 
