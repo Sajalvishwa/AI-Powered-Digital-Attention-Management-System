@@ -1,3 +1,4 @@
+backend/app/ml/saved_models/*.joblib
 .env
 __pycache__/
 *.pyc
@@ -40,3 +41,16 @@ frontend/dist/
 
 # Additional backup variants
 *.backup-*
+
+venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+*.joblib
+backend/app/ml/saved_models/*.joblib
+frontend/dist/
+frontend/release/
+desktop-agent/dist/
+desktop-agent/build/

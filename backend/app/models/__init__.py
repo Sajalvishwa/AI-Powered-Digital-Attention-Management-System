@@ -7,6 +7,7 @@ from app.models.notification_event import NotificationEvent
 from app.models.refresh_token import RefreshToken
 from app.models.score import DailyScore
 from app.models.user import User, UserSettings
+from app.models.daily_metric import DailyMetric 
 
 __all__ = [
     "ActivitySession", "Device", "FocusSession", "Goal",

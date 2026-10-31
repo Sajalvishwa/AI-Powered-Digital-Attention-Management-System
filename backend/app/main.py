@@ -1,8 +1,19 @@
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import account, activity, analytics, auth, focus, goals, users
+from app.api.routes import (
+    account,
+    activity,
+    analytics,
+    analytics_report,
+    auth,
+    focus,
+    goals,
+    users,
+)
 from app.core.config import settings
+
 
 app = FastAPI(title=settings.app_name, version="0.2.0")
 
@@ -25,6 +36,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+# Register API routers using the configured API prefix.
 # recommendations / admin come in later weeks.
 for r in (
     auth.router,
@@ -33,6 +45,7 @@ for r in (
     activity.router,
     focus.router,
     analytics.router,
+    analytics_report.router,
     goals.router,
 ):
     app.include_router(r, prefix=settings.api_prefix)

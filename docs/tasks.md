@@ -52,68 +52,162 @@
 
 ## PHASE 4 — Frontend: React Dashboard (Days 11–13)
 
-- [ ] **T4.1** Vite + React setup, `design.md` CSS-variable theme tokens aur Axios client.
-- [ ] **T4.2** Login + Register screens.
-- [ ] **T4.3** Onboarding — focus goal, idle threshold aur privacy consent.
-- [ ] **T4.4** Main shell — top bar + sidebar navigation.
-- [ ] **T4.5** Today dashboard — stat cards, timeline chart aur top apps.
-- [ ] **T4.6** Focus Session screen — ring timer + mini floating widget.
-- [ ] **T4.7** Apps screen + Goals screen.
-- [ ] **T4.8** Settings screen — tracking, theme, export/delete data.
-- [ ] **T4.9** Desktop agent tray icon (`pystray`) with status and pause menu.
-- [ ] **T4.10** Loading, empty, offline and error states.
+- [x] **T4.1** Vite + React setup, `design.md` CSS-variable theme tokens aur Axios client.
+- [x] **T4.2** Login + Register screens.
+- [x] **T4.3** Onboarding — focus goal, idle threshold aur privacy consent.
+- [x] **T4.4** Main shell — top bar + sidebar navigation.
+- [x] **T4.5** Today dashboard — stat cards, timeline chart aur top apps.
+- [x] **T4.6** Focus Session screen — ring timer + mini floating widget.
+- [x] **T4.7** Apps screen + Goals screen.
+- [x] **T4.8** Settings screen — tracking, theme, export/delete data.
+- [x] **T4.9** Desktop agent tray icon (`pystray`) with status and pause menu.
+- [x] **T4.10** Loading, empty, offline and error states.
 
 ## PHASE 5 — Polish & Package (Day 14)
 
-- [ ] **T5.1** Windows startup option + single-instance lock.
-- [ ] **T5.2** File logging; passwords, tokens, window titles aur other sensitive data logs mein nahi hone chahiye.
-- [ ] **T5.3** PyInstaller se `.exe` build karo aur clean Windows environment par test karo.
-- [ ] **T5.4** README mein setup, configuration aur run instructions likho.
-- [ ] **T5.5** End-to-end test: register → login → track → focus session → stats.
-- [ ] **T5.6** `memory.md` ka final update aur release tag `v0.1.0`.
+- [x] **T5.1** Windows startup option + single-instance lock.
+- [x] **T5.2** File logging; passwords, tokens, window titles aur other sensitive data logs mein nahi hone chahiye.
+- [x] **T5.3** PyInstaller se `.exe` build karo aur clean Windows environment par test karo.
+- [x] **T5.4** README mein setup, configuration aur run instructions likho.
+- [x] **T5.5** End-to-end test: register → login → track → focus session → stats.
+- [x] **T5.6** `memory.md` ka final update aur release tag `v0.1.0`.
 
 ---
 
 ## Week 1–2 Exit Criteria
 
-- [ ] User desktop application se register/login kar sake.
-- [ ] Tracker foreground app usage, idle time aur task switches record kare.
-- [ ] Data PostgreSQL mein safely store ho aur offline hone par data loss na ho.
-- [ ] Focus session start/stop ho aur history mein record ho.
-- [ ] Dashboard mein aaj ka accurate summary dikhe.
-- [ ] Settings mein focus goal aur privacy configuration kaam kare.
-- [ ] Automated tests pass hon aur clean setup instructions verify hon.
+- [x] User desktop application se register/login kar sake.
+- [x] Tracker foreground app usage, idle time aur task switches record kare.
+- [x] Data PostgreSQL mein safely store ho aur offline hone par data loss na ho.
+- [x] Focus session start/stop ho aur history mein record ho.
+- [x] Dashboard mein aaj ka accurate summary dikhe.
+- [x] Settings mein focus goal aur privacy configuration kaam kare.
+- [x] Automated tests pass hon aur clean setup instructions verify hon.
+
+# Weeks 3–4: Attention Analysis & Distraction Detection Engine
+
+**Stack:** FastAPI + PostgreSQL (SQLAlchemy + Alembic) + Celery + Python ML (pandas, numpy, scikit-learn)
+**Approach:** Pehle rule-based + statistics (no training data chahiye). ML sirf prediction me, jab data ho.
+
+> Note: `ml/` aur `services/` me kuch files already hain (`distraction.py`, `features.py`, `focus_score.py`, `predictor.py`, `scoring_service.py`, etc.). Naya banane se pehle **existing code check karo aur extend karo**, overwrite nahi.
 
 ---
 
-## Latest Progress — 12 October 2026
+## 0. Input Data (Week 1–2 se already available)
 
-### Backend Verification
+| Table (models/) | Use |
+|---|---|
+| `activity_log.py` | app name, start/end, duration, idle |
+| `focus_session.py` | focus start/end sessions |
+| `notification_event.py` | notification timestamps/app |
+| `score.py` | daily scores store karne ke liye |
 
-- **Activity batch API:** Verified — HTTP 200, one activity record inserted.
-- **Recent activity API:** Verified — 300-second activity record returned correctly.
-- **Privacy setting:** Window title returned as `null`, consistent with title storage being disabled.
-- **Stats today API:** Basic screen-time, top-app and hourly timeline aggregation verified.
-- **Stats range API:** Verified with dedicated integration tests.
-- **Date range validation:** Reversed dates rejected with HTTP 422.
-- **Range limit:** Maximum 92 calendar dates accepted; a range covering 93 calendar dates rejected.
-- **Empty range:** Zero totals and missing-date daily buckets verified.
-- **Activity calculations:** Active time, idle time, focus time and app-switch counts verified against test data.
-- **Full backend test suite:** `61 passed, 1 warning in 6.13s`.
-- **Warning:** Starlette/AnyIO deprecation warning; no test failures.
-- **Test database safety:** Integration fixtures refuse database names that do not end with `_test`; the test fixture resets test data between tests.
+- [ ] Check karo `score.py` me kya columns hain; zarurat ho to Alembic migration add karo (`alembic revision --autogenerate -m "analytics_tables"`)
+- [ ] Naye tables (agar chahiye): `daily_metrics`, `insights`
 
-### Pending / Important Notes
+---
 
-- **T1.10:** Authentication, profile and settings tests need explicit task-level review before marking complete.
-- **T2.3:** Verify the one-running-focus-session rule and focus-session ownership cases separately.
-- **T2.10:** Docker setup deferred as optional.
-- **Phase 3:** Desktop tracker implementation has not yet been verified.
-- **Phase 4:** React dashboard implementation remains pending.
-- **Exit criteria:** Week 1–2 exit criteria are not complete until the desktop tracker, dashboard and end-to-end workflow are implemented and tested.
+## 1. Behavioral Analytics Engine
+**Files:** `ml/features.py`, `services/stats_service.py`, `repositories/stats_repository.py`
 
-### Next Task
+| Task | Logic |
+|---|---|
+| Focus Session Analysis | Per day: total focus min, avg session, longest, count |
+| Attention Pattern | Hour-wise (0–23) focus minutes → best/worst hour |
+| Distraction Frequency | `distractions / focus_hours` per day |
+| Productivity Trend | 7-day moving average (pandas `rolling(7)`) |
 
-**T3.1 — Desktop tracker skeleton and entry point.**
+- [ ] `features.py` → `build_daily_features(user_id, date)` returns dict/DataFrame
+- [ ] Repository me SQL aggregation (`GROUP BY date_trunc('hour', ...)`)
 
-First inspect the existing `desktop/` directory and its virtual environment. Preserve existing project files and complete one task at a time.
+## 2. Distraction Detection
+**File:** `ml/distraction.py`
+
+| Task | Rule |
+|---|---|
+| Frequent Interruption | 30 min window me ≥ 3 interruptions |
+| Context Switching | app switches/hour; `> 20/hr` = high |
+| Notification Impact | Notification ke 5 min ke andar app switch / focus break → impact++ |
+| Focus Loss | Session < 5 min ya idle > 2 min |
+
+- [ ] Functions: `detect_interruptions()`, `context_switch_rate()`, `notification_impact()`, `focus_loss_events()`
+- [ ] Thresholds `core/config.py` me (env se tunable)
+
+## 3. AI-Based Focus Scoring (0–100)
+**Files:** `ml/focus_score.py`, `services/scoring_service.py`
+
+```python
+focus_score = (0.4*focus_ratio + 0.3*avg_session_score
+               + 0.2*(100 - switch_penalty) + 0.1*(100 - notif_penalty))
+
+productivity_score = productive_time / total_active_time * 100
+attention_stability = 100 - normalize(np.std(session_lengths))
+concentration_trend = np.polyfit(range(7), last_7_scores, 1)[0]   # slope
+```
+
+- [ ] Weights config me
+- [ ] Productive/unproductive app categories (simple dict ya DB table)
+- [ ] Daily score `score` table me save (upsert)
+
+## 4. Predictive Analytics
+**Files:** `ml/predictor.py`, `ml/train.py`
+
+| Task | Phase 1 (rules) | Phase 2 (ML, optional) |
+|---|---|---|
+| Focus Degradation | 7-day slope negative → warning | `LinearRegression` |
+| Productivity Risk | score < 50 for 3 days ya slope < -3 | `RandomForest` |
+| Attention Fatigue | 90 min ke baad switches 2x | feature: time-in-session vs switches |
+
+- [ ] Phase 1 pehle complete karo
+- [ ] Phase 2 tabhi jab 30+ days data ho; model `ml/saved_models/` me save (joblib)
+
+## 5. Insight Generation
+**File:** `services/recommendation_service.py`
+
+- [ ] **Attention Leak:** top 3 apps jinse sabse zyada focus loss
+- [ ] **Personalized Insight:** template based (*"Tumhara best focus 10–12 AM hai"*)
+- [ ] **Daily Summary:** score + best hour + top distraction + 1 suggestion
+- [ ] (Optional) LLM se polish — sirf final metrics bhejo, raw events nahi
+
+## 6. Background Job
+**File:** `tasks/celery_app.py`
+
+- [ ] Celery beat task: har raat sab users ke liye features → scores → insights → DB save
+
+## 7. API Endpoints
+**Files:** `api/routes/analytics.py`, `api/routes/recommendations.py`, `schemas/stats.py`
+
+```
+GET /analytics/daily?date=
+GET /analytics/focus-score
+GET /analytics/distractions
+GET /analytics/predictions
+GET /analytics/insights
+GET /analytics/summary
+```
+
+- [ ] Pydantic response schemas
+- [ ] Auth dependency (`deps.py`) + ownership check (existing pattern follow karo)
+
+## 8. Tests
+- [ ] `tests/test_distraction.py`, `test_focus_score.py`, `test_predictor.py` (pure unit, dummy data)
+- [ ] `tests/integration/test_analytics_endpoints.py`
+
+---
+
+## Timeline
+
+| Day | Work |
+|---|---|
+| 1–3 | Migration + features + session/pattern analytics |
+| 4–6 | Distraction rules (4 functions) + tests |
+| 7–9 | Scoring formulas + save to `score` table |
+| 10–12 | Predictions (rules → optional ML) |
+| 13–14 | Insights + Celery job + APIs + integration tests |
+
+## Definition of Done
+
+- [ ] Dummy data (1000+ activity rows) pe sab scores generate hote hain
+- [ ] Celery nightly job chalta hai
+- [ ] 6 endpoints working + tested
+- [ ] 3+ type ke readable insights
